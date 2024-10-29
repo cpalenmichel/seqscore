@@ -433,6 +433,7 @@ def score_conll_files(
     error_counts: bool = False,
     full_precision: bool = False,
     quiet: bool = False,
+    error_lists: bool = False
 ) -> None:
     assert len(pred_files) > 0, "List of files to score cannot be empty"
 
@@ -469,12 +470,49 @@ def score_conll_files(
             ignore_comment_lines=ignore_comment_lines,
             quiet=quiet,
         )
-
+        if error_lists:
+            error_counts = True  # To get count_fp_fn to be true
         class_scores, acc_scores = compute_scores(
             pred_docs, ref_docs, count_fp_fn=error_counts
         )
         all_class_scores.append(class_scores)
         all_acc_scores.append(class_scores)
+
+        if error_lists:
+            if multi_files:
+                raise ValueError(
+                    "Outputting error counts is only available for a single prediction file"
+                )
+
+            if output_format == FORMAT_CONLLEVAL:
+                raise ValueError(
+                    f"Format {repr(output_format)} is not supported with error counts"
+                )
+            elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
+                header = ["Error", "Type", "Tokens", "Sequence"]
+                rows = []
+                print("HEY: ", class_scores.false_pos_list)
+                for error_list, error_type in zip(
+                    (class_scores.false_pos_list, class_scores.false_neg_list),
+                    ("FP", "FN"),
+                ):
+
+                    rows.extend(
+                        [
+                            [error_type, tokens_type_seq.tokens_with_type.type, " ".join(tokens_type_seq.tokens_with_type.tokens), tokens_type_seq.sequence]
+                            for tokens_type_seq in error_list
+                        ]
+                    )
+                if output_format == FORMAT_PRETTY:
+                    print(tabulate(rows, header, tablefmt="github"))
+                else:
+                    # Delimited output
+                    score_summaries.append(delim.join(header))
+                    score_summaries.extend(_join_delim(row, delim) for row in rows)
+                    print("\n".join(score_summaries))
+
+                # Exit early since all the following logic is for printing scores
+            return
 
         if error_counts:
             if multi_files:

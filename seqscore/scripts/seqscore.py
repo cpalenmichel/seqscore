@@ -380,6 +380,11 @@ def summarize(
     help="whether to output counts of false positives and negatives instead of scores",
 )
 @click.option(
+    "--error-lists",
+    is_flag=True,
+    help="whether to output counts of false positives and negatives instead of scores",
+)
+@click.option(
     "--full-precision",
     is_flag=True,
     help="whether to output floating values at full precision instead of rounding half even at two decimal places",
@@ -399,6 +404,7 @@ def score(
     error_counts: bool,
     full_precision: bool,
     quiet: bool,
+    error_lists: bool,
 ):
     if repair_method == REPAIR_NONE:
         repair_method = None
@@ -424,6 +430,7 @@ def score(
         error_counts=error_counts,
         full_precision=full_precision,
         quiet=quiet,
+        error_lists=error_lists
     )
 
 
