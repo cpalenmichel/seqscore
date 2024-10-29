@@ -246,7 +246,6 @@ def score_sequence_mentions(
             if count_fp_fn:
                 error_tokens = tokens[pred.span.start : pred.span.end]
                 score.count_false_positive(error_tokens, pred.type)
-                print("YE")
                 score.log_false_positive(error_tokens, pred.type, ref_sequence)
 
     # Negatives
@@ -257,7 +256,6 @@ def score_sequence_mentions(
             if count_fp_fn:
                 error_tokens = tokens[ref.span.start : ref.span.end]
                 score.count_false_negative(error_tokens, ref.type)
-                print("NE")
                 score.log_false_negative(error_tokens, ref.type, ref_sequence)
 
 

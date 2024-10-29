@@ -491,7 +491,6 @@ def score_conll_files(
             elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
                 header = ["Error", "Type", "Tokens", "Sequence"]
                 rows = []
-                print("HEY: ", class_scores.false_pos_list)
                 for error_list, error_type in zip(
                     (class_scores.false_pos_list, class_scores.false_neg_list),
                     ("FP", "FN"),
