@@ -223,7 +223,7 @@ def score_sequence_mentions(
     *,
     tokens: Optional[Sequence[str]] = (),
     count_fp_fn: bool = False,
-    ref_sequence: Optional[LabeledSequence]
+    ref_sequence: Optional[LabeledSequence] = None
 ) -> None:
     """Update a ClassificationScore for a single sequence's mentions.
 
@@ -246,7 +246,8 @@ def score_sequence_mentions(
             if count_fp_fn:
                 error_tokens = tokens[pred.span.start : pred.span.end]
                 score.count_false_positive(error_tokens, pred.type)
-                score.log_false_positive(error_tokens, pred.type, ref_sequence)
+                if ref_sequence:
+                    score.log_false_positive(error_tokens, pred.type, ref_sequence)
 
     # Negatives
     for ref in ref_mentions_set:
@@ -256,7 +257,8 @@ def score_sequence_mentions(
             if count_fp_fn:
                 error_tokens = tokens[ref.span.start : ref.span.end]
                 score.count_false_negative(error_tokens, ref.type)
-                score.log_false_negative(error_tokens, ref.type, ref_sequence)
+                if ref_sequence:
+                    score.log_false_negative(error_tokens, ref.type, ref_sequence)
 
 
 # TODO: Consider taking an iterable and checking sequence lengths
