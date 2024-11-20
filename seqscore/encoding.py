@@ -628,7 +628,15 @@ class BIOES(Encoding):
                 entity_type,
             )
 
-        # Since BIO cannot have an illegal end-of sequence transition, no need to check
+        # Fix the final token
+        final_state, final_entity_type = self.split_label(repaired_labels[-1])
+        if final_state == begin:
+            new_final_label = self.join_label(single, prev_entity_type) if prev_state else prev_label
+            repaired_labels[-1] = new_final_label
+        elif final_state == inside:
+            new_final_label = self.join_label(end, prev_entity_type) if prev_state else prev_label
+            repaired_labels[-1] = new_final_label
+
         return repaired_labels
 
     def supported_repair_methods(self) -> Tuple[str, ...]:
