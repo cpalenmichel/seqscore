@@ -15,7 +15,8 @@ from seqscore.model import LabeledSequence, Mention, Span
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
 REPAIR_NONE = "none"
-SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
+REPAIR_BIOES = "bioes"
+SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE, REPAIR_BIOES)
 
 DEFAULT_OUTSIDE = "O"
 
@@ -548,8 +549,8 @@ class BIOES(Encoding):
             (
                 (begin, inside),
                 (begin, end),
-                (begin, begin),
-                (begin, single),
+                # (begin, begin),   # IS THIS VALID?
+                # (begin, single),  # IS THIS VALID?
                 (inside, inside),
                 (inside, end),
                 (end, begin),
@@ -578,10 +579,60 @@ class BIOES(Encoding):
         return state in self._valid_states
 
     def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
-        raise NotImplementedError
+        if method != REPAIR_BIOES:
+            raise ValueError(f"Repair method {repr(method)} is not supported for BIOES. Use bioes repair or repair your own labels.")
+
+        begin = self.dialect.begin
+        single = self.dialect.single
+        outside = self.dialect.outside
+        end = self.dialect.end
+        inside = self.dialect.inside
+        current_end_entity_states = {begin, single, outside}
+        prior_end_states = {single, end, outside}
+        # Treat sequence as if preceded by outside
+        prev_label = outside
+        prev_state, prev_entity_type = self.split_label(prev_label)
+
+        # Range loop since we will modify the labels during iteration
+        repaired_labels = list(labels)
+        for idx in range(len(repaired_labels)):
+            label = repaired_labels[idx]
+
+            state, entity_type = self.split_label(label)
+
+            # print("PREV", prev_state, prev_entity_type)
+            # print("CUR", state, entity_type)
+            # print()
+            if not self.is_valid_transition(
+                prev_state, prev_entity_type, state, entity_type
+            ):
+                if entity_type and (prev_state in prior_end_states or prev_state == outside or prev_entity_type != entity_type):
+                    state = begin
+
+                label = self.join_label(state, entity_type) if state else label
+                repaired_labels[idx] = label
+
+            # Fix the previous label if it is invalid
+            # If given current state signals it should have ended
+            if state in current_end_entity_states and idx >= 1:
+                if prev_state == begin:
+                    new_prev_label = self.join_label(single, prev_entity_type) if prev_state else prev_label
+                    repaired_labels[idx - 1] = new_prev_label
+                elif prev_state == inside:
+                    new_prev_label = self.join_label(end, prev_entity_type) if prev_state else prev_label
+                    repaired_labels[idx - 1] = new_prev_label
+
+            prev_label, prev_state, prev_entity_type = (
+                label,
+                state,
+                entity_type,
+            )
+
+        # Since BIO cannot have an illegal end-of sequence transition, no need to check
+        return repaired_labels
 
     def supported_repair_methods(self) -> Tuple[str, ...]:
-        return ()
+        return (REPAIR_BIOES)
 
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
