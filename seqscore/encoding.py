@@ -549,8 +549,6 @@ class BIOES(Encoding):
             (
                 (begin, inside),
                 (begin, end),
-                # (begin, begin),   # IS THIS VALID?
-                # (begin, single),  # IS THIS VALID?
                 (inside, inside),
                 (inside, end),
                 (end, begin),
@@ -606,7 +604,7 @@ class BIOES(Encoding):
             if not self.is_valid_transition(
                 prev_state, prev_entity_type, state, entity_type
             ):
-                if entity_type and (prev_state in prior_end_states or prev_state == outside or prev_entity_type != entity_type):
+                if entity_type and state != single and (prev_state in prior_end_states or prev_state == outside or prev_entity_type != entity_type):
                     state = begin
 
                 label = self.join_label(state, entity_type) if state else label
